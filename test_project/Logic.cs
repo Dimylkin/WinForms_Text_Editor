@@ -149,10 +149,10 @@ public class MarkdownEditor
 
             return SavingStatus.OSError;
         }
-        catch (ArgumentException)
-        {
-            return SavingStatus.InvalidFileNameError;
-        }
+        //catch (ArgumentException)
+        //{
+        //    return SavingStatus.InvalidFileNameError;
+        //}
         catch (NotSupportedException)
         {
             return SavingStatus.UnsupportedFormatError;
@@ -161,10 +161,10 @@ public class MarkdownEditor
         {
             return SavingStatus.BufferOverflowError;
         }
-        catch (Exception)
-        {
-            return SavingStatus.OSError;
-        }
+        //catch (Exception)
+        //{
+        //    return SavingStatus.OSError;
+        //}
     }
 
     public string[] ReturnContent()

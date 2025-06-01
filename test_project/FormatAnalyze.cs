@@ -23,7 +23,6 @@ namespace test_project
             { FormattingStyle.Italic, italicList },
             { FormattingStyle.Underline, underlineList },
             { FormattingStyle.Strikethrough, strikeoutList }
-
         };
 
 
@@ -130,7 +129,6 @@ namespace test_project
             { FormattingStyle.Italic, italicList },
             { FormattingStyle.Underline, underlineList },
             { FormattingStyle.Strikethrough, strikeoutList }
-
         };
 
         public Dictionary<FormattingStyle, List<int[]>> SaveFormatting(string filePath)

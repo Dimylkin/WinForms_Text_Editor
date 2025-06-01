@@ -9,7 +9,7 @@
         private Panel labelPanel;
         private Label rightLabel;
         private Label leftLabel;
-        private RichTextBox richTextBox;
+        private RichTextBox richTextBox; 
         private RichTextBox richTextBox2;
 
         private Button btnCreate;
@@ -70,26 +70,26 @@
                 AutoScroll = true
             };
 
-            var fileMenuItem = new ToolStripMenuItem("Файл")
+            var fileMenuItem = new ToolStripMenuItem("📄 Файл")
             {
                 Font = new Font("Times New Roman", 10),
                 AutoSize = false,
-                Size = new Size(80, 35),
+                Size = new Size(90, 35),
                 BackColor = Color.White
             };
 
-            var formatMenuItem = new ToolStripMenuItem("Формат")
+            var formatMenuItem = new ToolStripMenuItem("</> Формат")
             {
                 Font = new Font("Times New Roman", 10),
                 AutoSize = false,
-                Size = new Size(80, 35)
+                Size = new Size(90, 35)
             };
 
-            var insertMenuItem = new ToolStripMenuItem("Вставка")
+            var insertMenuItem = new ToolStripMenuItem("🔗 Вставка")
             {
                 Font = new Font("Times New Roman", 10),
                 AutoSize = false,
-                Size = new Size(80, 35)
+                Size = new Size(90, 35)
             };
 
             mainMenu.Items.AddRange([
@@ -163,7 +163,7 @@
 
             leftLabel = new Label
             {
-                Text = "Есть несохраненные изменения",
+                Text = " ⚠️ Есть несохраненные изменения",
                 Font = new Font("Times New Roman", 10),
                 Dock = DockStyle.Left,
                 AutoSize = true,
@@ -172,7 +172,7 @@
 
             rightLabel = new Label
             {
-                Text = "Файл не найден",
+                Text = " ⚠️ Файл не найден",
                 Font = new Font("Times New Roman", 10),
                 Dock = DockStyle.Right,
                 AutoSize = true,
@@ -225,24 +225,24 @@
 
             file_panel.Controls.AddRange(
             [
-                CreateButton("Создать", FontStyle.Regular, new Point(5, 5), 80, 30, ref btnCreate, clickHandler: CreateFileInterface),
-                CreateButton("Открыть", FontStyle.Regular, new Point(95, 5), 80, 30, ref btnOpen, clickHandler: OpenFileInterface),
-                CreateButton("Сохранить", FontStyle.Regular, new Point(185, 5), 100, 30, ref btnSave, clickHandler: SaveFileInterface),
-                CreateButton("Сохранить как", FontStyle.Regular, new Point(295, 5), 120, 30, ref btnSaveAs, clickHandler: SaveAsFileInterface)
+                CreateButton("✚ Создать", FontStyle.Regular, new Point(5, 5), 80, 30, ref btnCreate, clickHandler: CreateFileInterface),
+                CreateButton("✎ Открыть", FontStyle.Regular, new Point(95, 5), 80, 30, ref btnOpen, clickHandler: OpenFileInterface),
+                CreateButton("💾 Сохранить", FontStyle.Regular, new Point(185, 5), 100, 30, ref btnSave, clickHandler: SaveFileInterface),
+                CreateButton("💾 Сохранить как", FontStyle.Regular, new Point(295, 5), 120, 30, ref btnSaveAs, clickHandler: SaveAsFileInterface)
             ]);
 
             format_panel.Controls.AddRange(
             [
-                CreateButton("B", FontStyle.Bold, new Point(5, 5), 30, 30, ref btnBold, clickHandler: Bold),
-                CreateButton("I", FontStyle.Italic, new Point(40, 5), 30, 30, ref btnItalic, clickHandler: Italic),
-                CreateButton("U", FontStyle.Underline, new Point(75, 5), 30, 30, ref btnUnderline, clickHandler: UnderLine),
-                CreateButton("S", FontStyle.Strikeout, new Point(110, 5), 30, 30, ref btnStrikeout, clickHandler: CrossedLine),
+                CreateButton("Жирный", FontStyle.Bold, new Point(5, 5), 80, 30, ref btnBold, clickHandler: Bold),
+                CreateButton("Курсив", FontStyle.Italic, new Point(90, 5), 80, 30, ref btnItalic, clickHandler: Italic),
+                CreateButton("Подчеркнутый", FontStyle.Underline, new Point(175, 5), 110, 30, ref btnUnderline, clickHandler: UnderLine),
+                CreateButton("Зачеркнутый", FontStyle.Strikeout, new Point(290, 5), 110, 30, ref btnStrikeout, clickHandler: CrossedLine),
             ]);
 
             insert_panel.Controls.AddRange(
             [
-                CreateButton("Скопировать", FontStyle.Regular, new Point(5, 5), 120, 30, ref btnCopy, clickHandler: Copy),
-                CreateButton("Вставить", FontStyle.Regular, new Point(135, 5), 100, 30, ref btnPaste, clickHandler: Paste),
+                CreateButton("🗐 Скопировать", FontStyle.Regular, new Point(5, 5), 120, 30, ref btnCopy, clickHandler: Copy),
+                CreateButton("📋 Вставить", FontStyle.Regular, new Point(135, 5), 100, 30, ref btnPaste, clickHandler: Paste),
             ]);
 
             tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
@@ -370,15 +370,15 @@
             if (create_filePath != null)
             {
                 string fileName = Path.GetFileName(create_filePath);
-                rightLabel.Text = $"Выбранный файл: {fileName}";
-                MessageBox.Show($"{fileName} успешно создан");
+                rightLabel.Text = $" ✅ Выбранный файл: {fileName}";
+                MessageBox.Show($"{fileName} успешно создан", "✅ Успешно! ✅");
                 lastActionWasCreate = true;
                 monitor.StartMonitoring();
             }
             else
             {
-                rightLabel.Text = "Файл не найден";
-                MessageBox.Show("При создании файла произошла ошибка. \n Поробуйте ещё раз.");
+                rightLabel.Text = " ❌ Файл не найден";
+                MessageBox.Show("При создании файла произошла ошибка. \n Поробуйте ещё раз.", "❌ Ошибка! ❌");
             }
         }
 
@@ -388,33 +388,48 @@
             if (open_filePath != null)
             {
                 string fileName = Path.GetFileName(open_filePath);
-                rightLabel.Text = $"Выбранный файл: {fileName}";
-                MessageBox.Show($"{fileName} успешно открыт");
+                rightLabel.Text = $" ✅ Выбранный файл: {fileName}";
                 lastActionWasCreate = false;
                 monitor.StopMonitoring();
                 monitor.StartMonitoring();
-                leftLabel.Text = "Есть несохраненные изменения";
+                leftLabel.Text = " ❌ Есть несохраненные изменения";
             }
             else
             {
-                rightLabel.Text = "Выбранный файл: Файл не выбран";
-                MessageBox.Show("При открытии файла произошла ошибка. \n Попробуйте ещё раз.");
+                rightLabel.Text = "❌ Выбранный файл: Файл не выбран";
+                MessageBox.Show("При открытии файла произошла ошибка. \n Попробуйте ещё раз.", "❌ Ошибка! ❌");
             }
         }
 
         public void SaveFileInterface(object sender, EventArgs e)
         {
             string pathToUse = lastActionWasCreate ? create_filePath : open_filePath;
-            if (pathToUse == null)
+
+            if (string.IsNullOrEmpty(pathToUse))
             {
-                MessageBox.Show("Файл для сохранения не выбран. \n Создайте или откройте файл для сохранения.");
+                DialogResult result = MessageBox.Show(
+                    "Файл для сохранения не выбран. Хотите создать его?",
+                    "Сохранение",
+                    MessageBoxButtons.YesNo
+                );
+
+                if (result == DialogResult.Yes)
+                {
+                    CreateFileInterface(sender, e);
+                    if (create_filePath != null)
+                    {
+                        pathToUse = create_filePath;
+                        monitor.StopMonitoring();
+                        functional.SaveFileForInterface(richTextBox, pathToUse);
+                        leftLabel.Text = functional.GetStatusMessage(status, pathToUse);
+                    }
+                }
+                return;
             }
-            else
-            {
-                monitor.StopMonitoring();
-                functional.SaveFileForInterface(richTextBox, pathToUse);
-                leftLabel.Text = functional.GetStatusMessage(status, pathToUse);
-            }
+
+            monitor.StopMonitoring();
+            functional.SaveFileForInterface(richTextBox, pathToUse);
+            leftLabel.Text = functional.GetStatusMessage(status, pathToUse);
         }
 
         public void SaveAsFileInterface(object sender, EventArgs e)

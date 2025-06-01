@@ -14,6 +14,7 @@
             logic = new MarkdownEditor();
             md_parse = new MarkDownTextFormatAnalyzer();
         }
+
         public string? CreateFileForInterface(object sender, EventArgs e)
         {
             using (SaveFileDialog saveFileDialog = new())
@@ -50,15 +51,16 @@
                 logic.OpenFile(filePath);
 
                 string[] content = logic.ReturnContent();
-                formating_md = md_parse.SaveFormatting(filePath);
+                //formating_md = md_parse.SaveFormatting(filePath);
+                formating = logic.ReturnFormating();
 
                 richTextBox.Clear();
-                ApplyFormatting(richTextBox, content, formating_md);
+                ApplyFormatting(richTextBox, content, formating);
                 return filePath;
             }
         }
 
-        public void ApplyFormatting(RichTextBox richTextBox, string[] content, Dictionary<MarkDownTextFormatAnalyzer.FormattingStyle, List<int[]>> formatting)
+        public void ApplyFormatting(RichTextBox richTextBox, string[] content, Dictionary<FormattingStyle, List<int[]>> formatting)
         {
             richTextBox.Clear();
 
@@ -66,7 +68,7 @@
 
             foreach (var styleEntry in formatting)
             {
-                MarkDownTextFormatAnalyzer.FormattingStyle style = styleEntry.Key;
+                FormattingStyle style = styleEntry.Key;
                 List<int[]> formatInfoList = styleEntry.Value;
 
                 foreach (int[] formatInfo in formatInfoList)
@@ -85,16 +87,16 @@
 
                         switch (style)
                         {
-                            case MarkDownTextFormatAnalyzer.FormattingStyle.Bold:
+                            case FormattingStyle.Bold:
                                 richTextBox.SelectionFont = new Font(richTextBox.Font, FontStyle.Bold);
                                 break;
-                            case MarkDownTextFormatAnalyzer.FormattingStyle.Italic:
+                            case FormattingStyle.Italic:
                                 richTextBox.SelectionFont = new Font(richTextBox.Font, FontStyle.Italic);
                                 break;
-                            case MarkDownTextFormatAnalyzer.FormattingStyle.Underline:
+                            case FormattingStyle.Underline:
                                 richTextBox.SelectionFont = new Font(richTextBox.Font, FontStyle.Underline);
                                 break;
-                            case MarkDownTextFormatAnalyzer.FormattingStyle.Strikethrough:
+                            case FormattingStyle.Strikethrough:
                                 richTextBox.SelectionFont = new Font(richTextBox.Font, FontStyle.Strikeout);
                                 break;
                         }
@@ -178,15 +180,15 @@
                 case SavingStatus.FileExistsError:
                     errorMessage = $"Ошибка: Файл {filePath} уже существует и не может быть перезаписан";
                     break;
-                case SavingStatus.OSError:
-                    errorMessage = $"Системная ошибка при сохранении файла {filePath}";
-                    break;
+                //case SavingStatus.OSError:
+                //    errorMessage = $"Системная ошибка при сохранении файла {filePath}";
+                //    break;
                 case SavingStatus.DiskFullError:
                     errorMessage = $"Ошибка: На диске недостаточно места для сохранения {filePath}";
                     break;
-                case SavingStatus.InvalidFileNameError:
-                    errorMessage = $"Ошибка: Некорректное имя файла {filePath}";
-                    break;
+                //case SavingStatus.InvalidFileNameError:
+                //    errorMessage = $"Ошибка: Некорректное имя файла {filePath}";
+                //    break;
                 case SavingStatus.UnsupportedFormatError:
                     errorMessage = $"Ошибка: Формат файла {filePath} не поддерживается";
                     break;
