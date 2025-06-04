@@ -1,102 +1,185 @@
-﻿using System.Collections.Generic;
+﻿using Common.Enums;
 
 namespace test_project
 {
-    public class NormalTextFormatAnalyzer
+    public class FormatAnalyzer
     {
-        public enum FormattingStyle
+        MarkdownEditor logic;
+        public FormatAnalyzer()
         {
-            Bold,
-            Italic,
-            Underline,
-            Strikethrough,
-            Heading1,
-            Heading2,
-            Heading3
+            logic = new MarkdownEditor();
         }
 
-        public static List<int[]> boldList = [];
-        public static List<int[]> italicList = [];
-        public static List<int[]> underlineList = [];
-        public static List<int[]> strikeoutList = [];
-        public static List<int[]> heading1List = [];
-        public static List<int[]> heading2List = [];
-        public static List<int[]> heading3List = [];
+        private const int DefaultFontSize = 15;
+        private static readonly Dictionary<FormattingStyle, List<int[]>> _formattingCache = new();
 
-        Dictionary<FormattingStyle, List<int[]>> _formatting = new()
+        public List<MarkdownEditor.FormattedLine> GetFormattedLines(RichTextBox richTextBox)
         {
-            { FormattingStyle.Bold, boldList },
-            { FormattingStyle.Italic, italicList },
-            { FormattingStyle.Underline, underlineList },
-            { FormattingStyle.Strikethrough, strikeoutList },
-            { FormattingStyle.Heading1, heading1List },
-            { FormattingStyle.Heading2, heading2List },
-            { FormattingStyle.Heading3, heading3List }
-        };
+            var formatting = AnalyzeFormatting(richTextBox);
+            string[] lines = richTextBox.Lines;
+            var result = new List<MarkdownEditor.FormattedLine>();
 
-
-        public static RichTextBox richTextBox;
-        public static FontStyle lastFont;
-        public Dictionary<test_project.NormalTextFormatAnalyzer.FormattingStyle, List<int[]>> SaveFormatting(RichTextBox richTextBox)
-        {
-            boldList.Clear();
-            italicList.Clear();
-            underlineList.Clear();
-            strikeoutList.Clear();
-            heading1List.Clear();
-            heading2List.Clear();
-            heading3List.Clear();
-
-            int lineNumber = 0;
-            int lineStartIndex = 0;
-            const int defaultFontSize = 15;
-
-            string[] lines = richTextBox.Text.Split(new[] { '\n', '\v' }, StringSplitOptions.None);
-
-            for (int i = 0; i < lines.Length; i++)
+            for (int lineNum = 0; lineNum < lines.Length; lineNum++)
             {
-                string line = lines[i];
+                result.Add(ProcessLine(lines[lineNum], lineNum, formatting));
+            }
+
+            return result;
+        }
+
+        private Dictionary<FormattingStyle, List<int[]>> AnalyzeFormatting(RichTextBox richTextBox)
+        {
+            ClearFormattingCache();
+            string[] lines = richTextBox.Text.Split(new[] { '\n', '\v' }, StringSplitOptions.None);
+            int lineStartIndex = 0;
+
+            for (int lineNum = 0; lineNum < lines.Length; lineNum++)
+            {
+                string line = lines[lineNum];
                 if (string.IsNullOrEmpty(line))
                 {
                     lineStartIndex += line.Length + 1;
                     continue;
                 }
 
-                int lineLength = line.Length;
-                int currentPosition = lineStartIndex;
-                Font currentFont = GetCharFormat(richTextBox, currentPosition);
-                FontStyle currentStyle = currentFont?.Style ?? FontStyle.Regular;
-                int currentSize = (int)(currentFont?.Size ?? defaultFontSize);
-                int formatStart = 0;
-
-                for (int j = 1; j <= lineLength; j++)
-                {
-                    Font charFont = GetCharFormat(richTextBox, currentPosition + j);
-                    FontStyle charStyle = charFont?.Style ?? FontStyle.Regular;
-                    int charSize = (int)(charFont?.Size ?? defaultFontSize);
-
-                    if (charStyle != currentStyle || charSize != currentSize || j == lineLength)
-                    {
-                        int segmentLength = j - formatStart;
-                        if (segmentLength > 0)
-                        {
-                            SaveStyleInfo(currentStyle, currentSize, i, formatStart, segmentLength, boldList, italicList, underlineList, strikeoutList, heading1List, heading2List, heading3List);
-
-                        }
-
-                        currentStyle = charStyle;
-                        currentSize = charSize;
-                        formatStart = j;
-                    }
-                }
-                lineStartIndex += line.Length + 1;
-
+                ProcessLineFormatting(richTextBox, line, lineNum, ref lineStartIndex);
             }
-            lastFont = FontStyle.Regular;
-            return _formatting;
+
+            return _formattingCache;
         }
 
+        private void ProcessLineFormatting(RichTextBox richTextBox, string line, int lineNum, ref int lineStartIndex)
+        {
+            int lineLength = line.Length;
+            int currentPosition = lineStartIndex;
+            Font currentFont = GetCharFormat(richTextBox, currentPosition);
+            FontStyle currentStyle = currentFont?.Style ?? FontStyle.Regular;
+            int currentSize = (int)(currentFont?.Size ?? DefaultFontSize);
+            int formatStart = 0;
 
+            for (int j = 1; j <= lineLength; j++)
+            {
+                Font charFont = GetCharFormat(richTextBox, currentPosition + j);
+                FontStyle charStyle = charFont?.Style ?? FontStyle.Regular;
+                int charSize = (int)(charFont?.Size ?? DefaultFontSize);
+
+                if (charStyle != currentStyle || charSize != currentSize || j == lineLength)
+                {
+                    int segmentLength = j - formatStart;
+                    if (segmentLength > 0)
+                    {
+                        SaveStyleSegment(currentStyle, currentSize, lineNum, formatStart, segmentLength);
+                    }
+
+                    currentStyle = charStyle;
+                    currentSize = charSize;
+                    formatStart = j;
+                }
+            }
+
+            lineStartIndex += line.Length + 1;
+        }
+
+        private MarkdownEditor.FormattedLine ProcessLine(string line, int lineNum, Dictionary<FormattingStyle, List<int[]>> formatting)
+        {
+            var formattedLine = new MarkdownEditor.FormattedLine();
+            int pos = 0;
+
+            while (pos < line.Length)
+            {
+                var styles = GetStylesAtPosition(formatting, lineNum, pos);
+                int runLength = CalculateRunLength(line, formatting, lineNum, pos, styles);
+
+                formattedLine.Runs.Add(new MarkdownEditor.TextRun
+                {
+                    Text = line.Substring(pos, runLength),
+                    Styles = styles.Select(ConvertToMarkdownStyle).ToList()
+                });
+
+                pos += runLength;
+            }
+
+            return formattedLine;
+        }
+
+        private List<FormattingStyle> GetStylesAtPosition(Dictionary<FormattingStyle, List<int[]>> formatting, int lineNum, int pos)
+        {
+            var styles = new List<FormattingStyle>();
+        
+            foreach (var kvp in formatting)
+            {
+                if (kvp.Value.Any(range => 
+                    range[0] == lineNum && 
+                    pos >= range[1] && 
+                    pos < range[1] + range[2]))
+                {
+                    styles.Add(kvp.Key);
+                }
+            }
+        
+            return styles;
+        }
+
+        private int CalculateRunLength(string line, Dictionary<FormattingStyle, List<int[]>> formatting, 
+                                     int lineNum, int startPos, List<FormattingStyle> initialStyles)
+        {
+            int length = 1;
+        
+            while (startPos + length < line.Length)
+            {
+                var currentStyles = GetStylesAtPosition(formatting, lineNum, startPos + length);
+                if (!currentStyles.SequenceEqual(initialStyles))
+                    break;
+                
+                length++;
+            }
+        
+            return length;
+        }
+
+        private Common.Enums.FormattingStyle ConvertToMarkdownStyle(FormattingStyle style)
+        {
+            return style;
+        }
+
+        private void SaveStyleSegment(FontStyle style, int fontSize, int lineNumber, int start, int length)
+        {
+            if (length <= 0) return;
+
+            int[] info = { lineNumber, start, length };
+
+            if ((style & FontStyle.Bold) == FontStyle.Bold)
+            {
+                if (fontSize == 18)
+                    _formattingCache[FormattingStyle.Heading1].Add(info);
+                else if (fontSize == 21)
+                    _formattingCache[FormattingStyle.Heading2].Add(info);
+                else if (fontSize == 24)
+                    _formattingCache[FormattingStyle.Heading3].Add(info);
+                else
+                    _formattingCache[FormattingStyle.Bold].Add(info);
+            }
+
+            if ((style & FontStyle.Italic) == FontStyle.Italic)
+                _formattingCache[FormattingStyle.Italic].Add(info);
+
+            if ((style & FontStyle.Underline) == FontStyle.Underline)
+                _formattingCache[FormattingStyle.Underline].Add(info);
+
+            if ((style & FontStyle.Strikeout) == FontStyle.Strikeout)
+                _formattingCache[FormattingStyle.Strikethrough].Add(info);
+        }
+
+        private void ClearFormattingCache()
+        {
+            foreach (var style in Enum.GetValues(typeof(FormattingStyle)).Cast<FormattingStyle>())
+            {
+                if (!_formattingCache.ContainsKey(style))
+                    _formattingCache[style] = new List<int[]>();
+                else
+                    _formattingCache[style].Clear();
+            }
+        }
 
         public static Font GetCharFormat(RichTextBox richTextBox, int position)
         {
@@ -106,126 +189,6 @@ namespace test_project
             }
             richTextBox.Select(position, 1);
             return richTextBox.SelectionFont;
-        }
-        private static void SaveStyleInfo(FontStyle style, int fontSize, int lineNumber, int start, int length,
-                                List<int[]> boldList, List<int[]> italicList,
-                                List<int[]> underlineList, List<int[]> strikeoutList,
-                                List<int[]> heading1List, List<int[]> heading2List, List<int[]> heading3List)
-        {
-            if (length <= 0)
-                return;
-
-            int[] info = { lineNumber, start, length };
-
-            if ((style & FontStyle.Bold) == FontStyle.Bold)
-            {
-                if (fontSize == 18)
-                    heading1List.Add(info);
-                else if (fontSize == 21)
-                    heading2List.Add(info);
-                else if (fontSize == 24)
-                    heading3List.Add(info);
-                else
-                    boldList.Add(info);
-            }
-
-            if ((style & FontStyle.Italic) == FontStyle.Italic)
-                italicList.Add(info);
-
-            if ((style & FontStyle.Underline) == FontStyle.Underline)
-                underlineList.Add(info);
-
-            if ((style & FontStyle.Strikeout) == FontStyle.Strikeout)
-                strikeoutList.Add(info);
-        }
-    }
-
-    public class MarkDownTextFormatAnalyzer
-    {
-        public enum FormattingStyle
-        {
-            Bold,
-            Italic,
-            Underline,
-            Strikethrough,
-            Heading1,
-            Heading2,
-            Heading3
-        }
-
-        public static List<int[]> boldList = [];
-        public static List<int[]> italicList = [];
-        public static List<int[]> underlineList = [];
-        public static List<int[]> strikeoutList = [];
-        public static List<int[]> heading1List = [];
-        public static List<int[]> heading2List = [];
-        public static List<int[]> heading3List = [];
-
-        Dictionary<FormattingStyle, List<int[]>> _formatting = new()
-        {
-            { FormattingStyle.Bold, boldList },
-            { FormattingStyle.Italic, italicList },
-            { FormattingStyle.Underline, underlineList },
-            { FormattingStyle.Strikethrough, strikeoutList },
-            { FormattingStyle.Heading1, heading1List },
-            { FormattingStyle.Heading2, heading2List },
-            { FormattingStyle.Heading3, heading3List }
-        };
-
-        public Dictionary<FormattingStyle, List<int[]>> SaveFormatting(string filePath)
-        {
-            boldList.Clear();
-            italicList.Clear();
-            underlineList.Clear();
-            strikeoutList.Clear();
-            heading1List.Clear();
-            heading2List.Clear();
-            heading3List.Clear();
-            string[] lines = File.ReadAllLines(filePath);
-
-            for (int lineNumber = 0; lineNumber < lines.Length; lineNumber++)
-            {
-                string line = lines[lineNumber];
-                if (string.IsNullOrEmpty(line)) continue;
-
-                AnalyzeMarkdownFormat(line, lineNumber, "**", "**", boldList);
-
-                AnalyzeMarkdownFormat(line, lineNumber, "*", "*", italicList);
-
-                AnalyzeMarkdownFormat(line, lineNumber, "~~", "~~", strikeoutList);
-
-                AnalyzeMarkdownFormat(line, lineNumber, "__", "__", underlineList);
-
-                AnalyzeMarkdownFormat(line, lineNumber, "#", "#", heading1List);
-
-                AnalyzeMarkdownFormat(line, lineNumber, "##", "##", heading2List);
-
-                AnalyzeMarkdownFormat(line, lineNumber, "###", "###", heading3List);
-            }
-            return _formatting;
-        }
-
-        private void AnalyzeMarkdownFormat(string line, int lineNumber, string openTag, string closeTag, List<int[]> resultList)
-        {
-            int lastIndex = 0;
-            while (true)
-            {
-                int startTagPos = line.IndexOf(openTag, lastIndex);
-                if (startTagPos == -1) break;
-
-                int contentStart = startTagPos + openTag.Length;
-                int endTagPos = line.IndexOf(closeTag, contentStart);
-                if (endTagPos == -1) break;
-
-                int contentLength = endTagPos - contentStart;
-                if (contentLength > 0)
-                {
-                    int[] info = { lineNumber, startTagPos, contentLength };
-                    resultList.Add(info);
-                }
-
-                lastIndex = endTagPos + closeTag.Length;
-            }
         }
     }
 }

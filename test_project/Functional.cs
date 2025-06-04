@@ -1,18 +1,17 @@
-﻿namespace test_project
+﻿using System.Text;
+using static MarkdownEditor;
+using Common.Enums;
+
+namespace test_project
 {
     class Functional
     {
         MarkdownEditor logic;
-        MarkDownTextFormatAnalyzer md_parse;
-
-        public SavingStatus status;
-        public static Dictionary<FormattingStyle, List<int[]>> formating;
-        private Dictionary<MarkDownTextFormatAnalyzer.FormattingStyle, List<int[]>> formating_md;
-
+        FormatAnalyzer analyzer;
         public Functional()
         {
             logic = new MarkdownEditor();
-            md_parse = new MarkDownTextFormatAnalyzer();
+            analyzer = new FormatAnalyzer();
         }
 
         public string? CreateFileForInterface(object sender, EventArgs e)
@@ -45,102 +44,106 @@
                 openFileDialog.Filter = "Markdown файлы (*.md)|*.md|Текстовые файлы (*.txt)|*.txt";
                 openFileDialog.FileName = "markdownText.md";
 
-                if (openFileDialog.ShowDialog() != DialogResult.OK) { return null; }
+                if (openFileDialog.ShowDialog() != DialogResult.OK)
+                {
+                    return null;
+                }
 
                 string filePath = openFileDialog.FileName;
+
                 logic.OpenFile(filePath);
 
-                string[] content = logic.ReturnContent();
-                //formating_md = md_parse.SaveFormatting(filePath);
-                formating = logic.ReturnFormating();
+                var formattedContent = logic.ReturnContent();
+
+                var formattingInfo = logic.ReturnFormating();
 
                 richTextBox.Clear();
-                ApplyFormatting(richTextBox, content, formating);
+                richTextBox.Text = GetPlainText(formattedContent);
+
+                ApplyFormatting(richTextBox, formattingInfo);
+
                 return filePath;
             }
         }
 
-        public void ApplyFormatting(RichTextBox richTextBox, string[] content, Dictionary<FormattingStyle, List<int[]>> formatting)
+        private string GetPlainText(List<FormattedLine> content)
         {
-            richTextBox.Clear();
-
-            richTextBox.Text = string.Join(Environment.NewLine, content);
-
-            foreach (var styleEntry in formatting)
+            var sb = new StringBuilder();
+            foreach (var line in content)
             {
-                FormattingStyle style = styleEntry.Key;
-                List<int[]> formatInfoList = styleEntry.Value;
-
-                foreach (int[] formatInfo in formatInfoList)
+                foreach (var run in line.Runs)
                 {
-                    int lineNumber = formatInfo[0];
-                    int startPosition = formatInfo[1];
-                    int length = formatInfo[2];
+                    sb.Append(run.Text);
+                }
+                sb.AppendLine();
+            }
+            return sb.ToString();
+        }
 
-                    int lineStartIndex = richTextBox.GetFirstCharIndexFromLine(lineNumber);
+        private void ApplyFormatting(RichTextBox richTextBox, Dictionary<FormattingStyle, List<int[]>> formattingInfo)
+        {
+            foreach (var styleEntry in formattingInfo)
+            {
+                foreach (var format in styleEntry.Value)
+                {
+                    int lineNumber = format[0];
+                    int start = format[1];
+                    int length = format[2];
+                    int globalPos = format[3];
 
-                    int rtbStart = lineStartIndex + startPosition;
+                    richTextBox.Select(globalPos, length);
 
-                    if (rtbStart >= 0 && rtbStart + length <= richTextBox.Text.Length)
+                    FontStyle newStyle = richTextBox.SelectionFont.Style;
+
+                    switch (styleEntry.Key)
                     {
-                        richTextBox.Select(rtbStart, length);
-
-                        switch (style)
-                        {
-                            case FormattingStyle.Bold:
-                                richTextBox.SelectionFont = new Font(richTextBox.Font, FontStyle.Bold);
-                                break;
-                            case FormattingStyle.Italic:
-                                richTextBox.SelectionFont = new Font(richTextBox.Font, FontStyle.Italic);
-                                break;
-                            case FormattingStyle.Underline:
-                                richTextBox.SelectionFont = new Font(richTextBox.Font, FontStyle.Underline);
-                                break;
-                            case FormattingStyle.Strikethrough:
-                                richTextBox.SelectionFont = new Font(richTextBox.Font, FontStyle.Strikeout);
-                                break;
-                            case FormattingStyle.Heading1:
-                                richTextBox.SelectionFont = new Font("Times New Roman", 18, FontStyle.Bold);
-                                break;
-                            case FormattingStyle.Heading2:
-                                richTextBox.SelectionFont = new Font("Times New Roman", 21, FontStyle.Bold);
-                                break;
-                            case FormattingStyle.Heading3:
-                                richTextBox.SelectionFont = new Font("Times New Roman", 24, FontStyle.Bold);
-                                break;
-                        }
+                        case FormattingStyle.Bold:
+                            newStyle |= FontStyle.Bold;
+                            break;
+                        case FormattingStyle.Italic:
+                            newStyle |= FontStyle.Italic;
+                            break;
+                        case FormattingStyle.Underline:
+                            newStyle |= FontStyle.Underline;
+                            break;
+                        case FormattingStyle.Strikethrough:
+                            newStyle |= FontStyle.Strikeout;
+                            break;
                     }
+
+                    richTextBox.SelectionFont = new Font(richTextBox.Font, newStyle);
                 }
             }
-            richTextBox.Select(0, 0);
         }
-    
+
         public void SaveFileForInterface(RichTextBox richTextBox, string filePath)
         {
-
-            var analyzer_md = new NormalTextFormatAnalyzer();
-            Dictionary<NormalTextFormatAnalyzer.FormattingStyle, List<int[]>> formating = analyzer_md.SaveFormatting(richTextBox);
-
-            string[] stringArray = richTextBox.Lines;
-
-            logic.SaveContent(stringArray);
-            logic.SaveFormating(formating.ToDictionary(kvp => (FormattingStyle)kvp.Key, kvp => kvp.Value));
-
-            SavingStatus status = logic.SaveFile(filePath);
-
-            if (status == SavingStatus.Saved)
+            try
             {
-                MessageBox.Show($"{Path.GetFileName(filePath)} успешно сохранён", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var formattedContent = analyzer.GetFormattedLines(richTextBox);
+
+                logic.SaveContent(formattedContent);
+                SavingStatus status = logic.SaveFile(filePath);
+
+                if (status == SavingStatus.Saved)
+                {
+                    MessageBox.Show("Файл успешно сохранён", "Успех",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+
+                else ShowSaveError(status, filePath);
             }
-            else
+
+            catch (Exception ex)
             {
-                ShowSaveError(status, filePath);
+                MessageBox.Show($"Ошибка сохранения: {ex.Message}", "Ошибка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         public string? SaveAsFileForInterface(object sender, EventArgs e, RichTextBox richTextBox)
         {
-            using (SaveFileDialog saveFileDialog = new SaveFileDialog())
+            using (var saveFileDialog = new SaveFileDialog())
             {
                 saveFileDialog.Title = "Сохранить файл как";
                 saveFileDialog.Filter = "Markdown файлы (*.md)|*.md|Текстовые файлы (*.txt)|*.txt";
@@ -148,33 +151,32 @@
 
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    string filePath = saveFileDialog.FileName;
-                    var analyzer_md = new NormalTextFormatAnalyzer();
-                    Dictionary<NormalTextFormatAnalyzer.FormattingStyle, List<int[]>> formating = analyzer_md.SaveFormatting(richTextBox);
-
-                    string[] stringArray = richTextBox.Lines;
-
-                    logic.SaveContent(stringArray);
-                    logic.SaveFormating(formating.ToDictionary(kvp => (FormattingStyle)kvp.Key, kvp => kvp.Value));
-
-                    SavingStatus status = logic.SaveFile(filePath);
-
-                    if (status == SavingStatus.Saved)
+                    try
                     {
-                        MessageBox.Show($"{Path.GetFileName(filePath)} успешно сохранён", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        return filePath;
+                        var formattedContent = analyzer.GetFormattedLines(richTextBox);
+
+                        logic.SaveContent(formattedContent);
+                        SavingStatus status = logic.SaveFile(saveFileDialog.FileName);
+
+                        if (status == SavingStatus.Saved)
+                        {
+                            MessageBox.Show("Файл успешно сохранён", "Успех",
+                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            return saveFileDialog.FileName;
+                        }
+                        else ShowSaveError(status, saveFileDialog.FileName);
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        ShowSaveError(status, filePath);
-                        return filePath;
+                        MessageBox.Show($"Ошибка сохранения: {ex.Message}", "Ошибка",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
-                return null;
             }
+            return null;
         }
 
-        private void ShowSaveError(SavingStatus status, string filePath)
+        public void ShowSaveError(SavingStatus status, string filePath)
         {
             string errorMessage;
 
@@ -189,15 +191,15 @@
                 case SavingStatus.FileExistsError:
                     errorMessage = $"Ошибка: Файл {filePath} уже существует и не может быть перезаписан";
                     break;
-                //case SavingStatus.OSError:
-                //    errorMessage = $"Системная ошибка при сохранении файла {filePath}";
-                //    break;
+                case SavingStatus.OSError:
+                    errorMessage = $"Системная ошибка при сохранении файла {filePath}";
+                    break;
                 case SavingStatus.DiskFullError:
                     errorMessage = $"Ошибка: На диске недостаточно места для сохранения {filePath}";
                     break;
-                //case SavingStatus.InvalidFileNameError:
-                //    errorMessage = $"Ошибка: Некорректное имя файла {filePath}";
-                //    break;
+                case SavingStatus.InvalidFileNameError:
+                    errorMessage = $"Ошибка: Некорректное имя файла {filePath}";
+                    break;
                 case SavingStatus.UnsupportedFormatError:
                     errorMessage = $"Ошибка: Формат файла {filePath} не поддерживается";
                     break;

@@ -1,6 +1,4 @@
-﻿using System.Windows.Forms;
-
-namespace test_project
+﻿namespace test_project
 {
     public class MainForm : Form
     {
@@ -251,7 +249,6 @@ namespace test_project
             [
                 CreateButton("🗐 Скопировать", FontStyle.Regular, new Point(5, 5), 120, 30, ref btnCopy, clickHandler: Copy),
                 CreateButton("📋 Вставить", FontStyle.Regular, new Point(135, 5), 100, 30, ref btnPaste, clickHandler: Paste),
-                CreateButton("🖼️ Изображение", FontStyle.Regular, new Point(245, 5), 120, 30, ref btnPaste, clickHandler: Pictures),
             ]);
 
             tableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
@@ -514,20 +511,6 @@ namespace test_project
         private void Paste(object sender, EventArgs e)
         {
             richTextBox.Paste();
-        }
-
-        private void Pictures(object sender, EventArgs e)
-        {
-            //using (OpenFileDialog openFileDialog = new OpenFileDialog())
-            //{
-            //    openFileDialog.Filter = "Изображения (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg";
-            //    if (openFileDialog.ShowDialog() == DialogResult.OK)
-            //    {
-            //        Image img = Image.FromFile(openFileDialog.FileName);
-            //        Clipboard.SetImage(img);
-            //        richTextBox.Paste();
-            //    }
-            //}
         }
     }
 }

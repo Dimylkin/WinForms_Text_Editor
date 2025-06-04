@@ -14,10 +14,15 @@
         private Point _lastCursorPosition;
         private MarkdownEditor logic;
         private MainForm _mainForm;
+        private Functional func;
+        private FormatAnalyzer analyzer;
+
 
         public TextInputMonitor()
         {
             logic = new MarkdownEditor();
+            func = new Functional();
+            analyzer = new FormatAnalyzer();
         }
 
         public TextInputMonitor(RichTextBox richTextBox, MainForm mainForm)
@@ -71,7 +76,7 @@
 
         private void CheckCursorActivity(object sender, EventArgs e)
         {
-            if ((DateTime.Now - _lastCursorMoveTime).TotalSeconds >= 50)
+            if ((DateTime.Now - _lastCursorMoveTime).TotalSeconds >= 10)
             {
                 PerformActions();
                 _lastCursorMoveTime = DateTime.Now;
@@ -80,18 +85,27 @@
 
         private void PerformActions()
         {
-            _richTextBox2.Rtf = _richTextBox.Rtf;
+            try
+            {
+                string filePath = _mainForm.lastActionWasCreate ? _mainForm.create_filePath : _mainForm.open_filePath;
+                var formattedContent = analyzer.GetFormattedLines(_richTextBox2);
 
-            var analyzer_md = new NormalTextFormatAnalyzer();
-            Dictionary<NormalTextFormatAnalyzer.FormattingStyle, List<int[]>> formating = analyzer_md.SaveFormatting(_richTextBox2);
+                logic.SaveContent(formattedContent);
+                SavingStatus status = logic.SaveFile(filePath);
 
-            string[] stringArray = _richTextBox2.Lines;
+                if (status == SavingStatus.Saved)
+                {
+                    MessageBox.Show("Файл успешно сохранён", "Успех",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else func.ShowSaveError(status, filePath);
+            }
 
-            logic.SaveContent(stringArray);
-            logic.SaveFormating(formating.ToDictionary(kvp => (FormattingStyle)kvp.Key, kvp => kvp.Value));
-
-            string filePath = _mainForm.lastActionWasCreate ? _mainForm.create_filePath : _mainForm.open_filePath;
-            SavingStatus status = logic.SaveFile(filePath);
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка сохранения: {ex.Message}", "Ошибка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }
