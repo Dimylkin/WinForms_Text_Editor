@@ -99,6 +99,15 @@
                             case FormattingStyle.Strikethrough:
                                 richTextBox.SelectionFont = new Font(richTextBox.Font, FontStyle.Strikeout);
                                 break;
+                            case FormattingStyle.Heading1:
+                                richTextBox.SelectionFont = new Font("Times New Roman", 18, FontStyle.Bold);
+                                break;
+                            case FormattingStyle.Heading2:
+                                richTextBox.SelectionFont = new Font("Times New Roman", 21, FontStyle.Bold);
+                                break;
+                            case FormattingStyle.Heading3:
+                                richTextBox.SelectionFont = new Font("Times New Roman", 24, FontStyle.Bold);
+                                break;
                         }
                     }
                 }

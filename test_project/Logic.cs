@@ -8,7 +8,10 @@ public enum FormattingStyle
     Bold,
     Italic,
     Underline,
-    Strikethrough
+    Strikethrough,
+    Heading1,
+    Heading2,
+    Heading3
 }
 
 public enum SavingStatus
@@ -54,7 +57,10 @@ public class MarkdownEditor
             { FormattingStyle.Bold, @"\*\*(.+?)\*\*" },
             { FormattingStyle.Italic, @"(?<!\*)\*(?!\*)(.+?)\*(?!\*)" },
             { FormattingStyle.Underline, @"__(.+?)__" },
-            { FormattingStyle.Strikethrough, @"~~(.+?)~~" }
+            { FormattingStyle.Strikethrough, @"~~(.+?)~~" },
+            { FormattingStyle.Heading1, @"#(.+?)#" },
+            { FormattingStyle.Heading2, @"##(.+?)##" },
+            { FormattingStyle.Heading3, @"###(.+?)###" }
         };
 
         var lines = File.ReadAllLines(path);
@@ -205,6 +211,9 @@ public class MarkdownEditor
         FormattingStyle.Italic => 1,
         FormattingStyle.Underline => 2,
         FormattingStyle.Strikethrough => 2,
+        FormattingStyle.Heading1 => 1,
+        FormattingStyle.Heading2 => 2,
+        FormattingStyle.Heading3 => 3,
         _ => 0
     };
 
@@ -214,6 +223,9 @@ public class MarkdownEditor
         FormattingStyle.Italic => "*",
         FormattingStyle.Underline => "__",
         FormattingStyle.Strikethrough => "~~",
+        FormattingStyle.Heading1 => "#",
+        FormattingStyle.Heading2 => "##",
+        FormattingStyle.Heading3 => "###",
         _ => ""
     };
 }

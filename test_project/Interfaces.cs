@@ -23,6 +23,9 @@ namespace test_project
         private Button btnItalic;
         private Button btnUnderline;
         private Button btnStrikeout;
+        private Button btnHeading1;
+        private Button btnHeading2;
+        private Button btnHeading3;
 
         private Button btnCopy;
         private Button btnPaste;
@@ -239,6 +242,9 @@ namespace test_project
                 CreateButton("Курсив", FontStyle.Italic, new Point(90, 5), 80, 30, ref btnItalic, clickHandler: Italic),
                 CreateButton("Подчеркнутый", FontStyle.Underline, new Point(175, 5), 110, 30, ref btnUnderline, clickHandler: UnderLine),
                 CreateButton("Зачеркнутый", FontStyle.Strikeout, new Point(290, 5), 110, 30, ref btnStrikeout, clickHandler: CrossedLine),
+                CreateButton("Заголовок 1", FontStyle.Bold, new Point(405, 5), 110, 30, ref btnHeading1, clickHandler: Heading1),
+                CreateButton("Заголовок 2", FontStyle.Bold, new Point(520, 5), 110, 30, ref btnHeading2, clickHandler: Heading2),
+                CreateButton("Заголовок 3", FontStyle.Bold, new Point(635, 5), 110, 30, ref btnHeading3, clickHandler: Heading3)
             ]);
 
             insert_panel.Controls.AddRange(
@@ -305,6 +311,9 @@ namespace test_project
             RegisterHotKey(Keys.Control | Keys.I, btnItalic, Italic);
             RegisterHotKey(Keys.Control | Keys.U, btnUnderline, UnderLine);
             RegisterHotKey(Keys.Control | Keys.K, btnStrikeout, CrossedLine);
+            RegisterHotKey(Keys.Control | Keys.D1, btnHeading1, Heading1);
+            RegisterHotKey(Keys.Control | Keys.D2, btnHeading2, Heading2);
+            RegisterHotKey(Keys.Control | Keys.D3, btnHeading3, Heading3);
 
             RegisterHotKey(Keys.Control | Keys.C, btnCopy, Copy);
             RegisterHotKey(Keys.Control | Keys.V, btnPaste, Paste);
@@ -315,10 +324,32 @@ namespace test_project
             _keyActions[keyCombination] = () => handler(button, EventArgs.Empty);
             _keyButtons[keyCombination] = button;
 
-            string keyText = keyCombination.ToString()
-                .Replace("Control", "Ctrl")
-                .Replace(", ", "+");
+            string keyText = FormatKeyCombination(keyCombination);
             toolTip1.SetToolTip(button, $"{button.Text} ({keyText})");
+        }
+
+        private string FormatKeyCombination(Keys keys)
+        {
+            var parts = new List<string>();
+
+            if ((keys & Keys.Control) == Keys.Control)
+                parts.Add("Ctrl");
+            if ((keys & Keys.Alt) == Keys.Alt)
+                parts.Add("Alt");
+            if ((keys & Keys.Shift) == Keys.Shift)
+                parts.Add("Shift");
+
+            var mainKey = keys & ~Keys.Control & ~Keys.Alt & ~Keys.Shift;
+            if (mainKey != Keys.None)
+            {
+                string mainKeyStr = mainKey.ToString();
+                if (mainKeyStr.StartsWith("D") && mainKeyStr.Length == 2 && char.IsDigit(mainKeyStr[1]))
+                    mainKeyStr = mainKeyStr.Substring(1);
+
+                parts.Add(mainKeyStr);
+            }
+
+            return string.Join(" + ", parts);
         }
 
         private void MainForm_KeyDown(object sender, KeyEventArgs e)
@@ -442,12 +473,15 @@ namespace test_project
             leftLabel.Text = functional.GetStatusMessage(status, pathToUse);
         }
 
-        private void Bold(object sender, EventArgs e) => ToggleFontStyleExclusive(FontStyle.Bold);
-        private void Italic(object sender, EventArgs e) => ToggleFontStyleExclusive(FontStyle.Italic);
-        private void UnderLine(object sender, EventArgs e) => ToggleFontStyleExclusive(FontStyle.Underline);
-        private void CrossedLine(object sender, EventArgs e) => ToggleFontStyleExclusive(FontStyle.Strikeout);
+        private void Bold(object sender, EventArgs e) => ToggleFontStyleExclusive(FontStyle.Bold, 15);
+        private void Italic(object sender, EventArgs e) => ToggleFontStyleExclusive(FontStyle.Italic, 15);
+        private void UnderLine(object sender, EventArgs e) => ToggleFontStyleExclusive(FontStyle.Underline, 15);
+        private void CrossedLine(object sender, EventArgs e) => ToggleFontStyleExclusive(FontStyle.Strikeout, 15);
+        private void Heading1(object sender, EventArgs e) => ToggleFontStyleExclusive(FontStyle.Bold, 18);
+        private void Heading2(object sender, EventArgs e) => ToggleFontStyleExclusive(FontStyle.Bold, 21);
+        private void Heading3(object sender, EventArgs e) => ToggleFontStyleExclusive(FontStyle.Bold, 24);
 
-        private void ToggleFontStyleExclusive(FontStyle style)
+        private void ToggleFontStyleExclusive(FontStyle style, int fontSize)
         {
             Font currentFont = richTextBox.SelectionFont;
             FontStyle newStyle;
@@ -461,6 +495,7 @@ namespace test_project
             if (currentFont.Style == style)
             {
                 newStyle = FontStyle.Regular;
+                fontSize = 15;
             }
 
             else
@@ -468,7 +503,7 @@ namespace test_project
                 newStyle = style;
             }
 
-            richTextBox.SelectionFont = new Font(currentFont.FontFamily, currentFont.Size, newStyle);
+            richTextBox.SelectionFont = new Font(currentFont.FontFamily, fontSize, newStyle);
         }
 
         private void Copy(object sender, EventArgs e)
